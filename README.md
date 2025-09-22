@@ -1,35 +1,51 @@
 # 🚀 GalaDex TypeScript Trading Bot
 
-A sophisticated automated trading bot for the GalaDex decentralized exchange, built with TypeScript and featuring multiple trading strategies including arbitrage detection, momentum analysis, and risk management.
+A sophisticated automated trading bot for the GalaDex decentralized exchange, built with TypeScript and featuring multiple advanced trading strategies including arbitrage detection, momentum analysis, Bollinger Bands, Fibonacci analysis, and risk management.
 
 ## ✨ Features
 
-- **Multi-Strategy Trading**: Implements arbitrage detection, momentum analysis, volume analysis, and trend following
+- **Multi-Strategy Trading**: Implements 7 advanced trading strategies with weighted scoring
 - **Risk Management**: Kelly Criterion position sizing with comprehensive risk controls
 - **Real-time Monitoring**: Live dashboard with performance metrics and trade tracking
 - **Arbitrage Detection**: Cross-pool price comparison across different fee tiers
-- **Technical Analysis**: Moving averages, momentum indicators, and volume analysis
+- **Technical Analysis**: Bollinger Bands, Fibonacci analysis, moving averages, and momentum indicators
+- **DCA Strategy**: Dollar Cost Averaging with dynamic position sizing
 - **Safety Features**: Dry run mode, slippage protection, and daily loss limits
-- **Web Dashboard**: Modern React-based UI for monitoring and control
+- **Professional Dashboard**: Real-time monitoring and performance tracking
 
 ## 🎯 Trading Strategies
 
-### 1. Arbitrage Detection (40% weight)
+### 1. Arbitrage Detection (25% weight)
 - Cross-pool analysis across fee tiers (0.01%, 0.05%, 0.3%, 1%)
 - Minimum 0.5% price difference threshold
 - Automatic execution when opportunities are detected
 
-### 2. Price Momentum Analysis (25% weight)
+### 2. Bollinger Bands (15% weight)
+- 20-period moving average with 2 standard deviations
+- Buy signals at lower band, sell signals at upper band
+- Sophisticated overbought/oversold detection
+
+### 3. Fibonacci Analysis (15% weight)
+- Complete retracement and extension analysis
+- Targets 10%+ gains with confidence scoring
+- 61.8%, 50%, 38.2% retracement levels
+
+### 4. DCA Strategy (10% weight)
+- Dollar Cost Averaging with dynamic position sizing
+- Maximum 10 DCA positions per token
+- 5-minute cooldown between DCA attempts
+
+### 5. Momentum Analysis (15% weight)
 - Short-term vs long-term price comparison
 - 2% minimum momentum threshold
 - BUY/SELL signals based on momentum strength
 
-### 3. Volume Analysis (20% weight)
+### 6. Volume Analysis (10% weight)
 - Volume spike detection (150% of average)
 - Unusual trading activity identification
 - Market sentiment analysis
 
-### 4. Trend Analysis (15% weight)
+### 7. Trend Analysis (10% weight)
 - Moving average crossover signals
 - Trend strength calculation
 - 1% minimum trend strength threshold

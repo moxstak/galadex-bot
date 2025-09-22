@@ -280,4 +280,12 @@ export class Bot {
             throw error;
         }
     }
+
+    getEnhancedTradingService(): any {
+        return this.enhancedTradingService;
+    }
+
+    getGalaDexService(): any {
+        return this.galaDexService;
+    }
 }

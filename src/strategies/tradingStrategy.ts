@@ -1,11 +1,16 @@
 import { Logger } from '../utils/logger';
 import { GalaDexService, GalaToken } from '../services/galaDexService';
 import { Config } from '../config';
+import { BollingerBandsStrategy, BollingerBandsSignal } from './bollingerBandsStrategy';
+import { FibonacciStrategy, FibonacciSignal } from './fibonacciStrategy';
+import { DCAStrategy, DCASignal } from './dcaStrategy';
+import { TradingProfile } from '../config/tradingProfiles';
 
 export interface TradingSignal {
     action: 'BUY' | 'SELL' | 'HOLD';
     confidence: number; // 0-1
     reason: string;
+    strategy?: string;
     targetPrice?: number;
     stopLoss?: number;
     takeProfit?: number;
@@ -26,9 +31,58 @@ export class TradingStrategy {
     private priceHistory: Map<string, number[]> = new Map();
     private volumeHistory: Map<string, number[]> = new Map();
     private lastSignals: Map<string, TradingSignal> = new Map();
+    
+    // New strategy instances
+    private bollingerBandsStrategy: BollingerBandsStrategy;
+    private fibonacciStrategy: FibonacciStrategy;
+    private dcaStrategy: DCAStrategy;
+    
+    // Current trading profile
+    private currentProfile: TradingProfile;
 
-    constructor(galaDexService: GalaDexService) {
+    constructor(galaDexService: GalaDexService, initialProfile?: TradingProfile) {
         this.galaDexService = galaDexService;
+        this.bollingerBandsStrategy = new BollingerBandsStrategy();
+        this.fibonacciStrategy = new FibonacciStrategy();
+        this.dcaStrategy = new DCAStrategy();
+        
+        // Set default profile if none provided
+        this.currentProfile = initialProfile || {
+            id: 'balanced',
+            name: 'Balanced',
+            description: 'Default balanced profile',
+            strategyWeights: {
+                arbitrage: 0.25,
+                momentum: 0.15,
+                volume: 0.10,
+                trend: 0.10,
+                bollingerBands: 0.15,
+                fibonacci: 0.15,
+                dca: 0.10
+            },
+            riskSettings: {
+                maxPositionSize: 1000,
+                minConfidenceThreshold: 0.5,
+                maxDailyLoss: 50,
+                maxDrawdown: 100,
+                tradeCooldownMinutes: 5
+            },
+            tradingSettings: {
+                scanIntervalMs: 30000,
+                minProfitThreshold: 0.01,
+                maxSlippage: 0.05,
+                enableDryRun: true
+            },
+            enabledStrategies: {
+                arbitrage: true,
+                momentum: true,
+                volume: true,
+                trend: true,
+                bollingerBands: true,
+                fibonacci: true,
+                dca: true
+            }
+        };
     }
 
     async analyzeMarket(): Promise<Map<string, TradingSignal>> {
@@ -70,15 +124,42 @@ export class TradingStrategy {
             return { action: 'HOLD', confidence: 0, reason: 'Insufficient price history' };
         }
 
+        // Update price history for new strategies
+        this.bollingerBandsStrategy.updatePriceHistory(symbol, currentPrice);
+        this.fibonacciStrategy.updatePriceHistory(symbol, currentPrice);
+
         // Multiple strategy analysis
         const arbitrageSignal = await this.analyzeArbitrage(token, currentPrice);
         const momentumSignal = this.analyzeMomentum(symbol, prices);
         const volumeSignal = this.analyzeVolume(symbol, currentPrice);
         const trendSignal = this.analyzeTrend(symbol, prices);
+        
+        // New contest strategies
+        const bollingerSignal = this.bollingerBandsStrategy.analyzeBollingerBands(symbol, prices);
+        const fibonacciSignal = this.fibonacciStrategy.analyzeFibonacci(symbol, prices);
+        const dcaSignal = this.dcaStrategy.analyzeDCA(symbol, currentPrice);
 
-        // Combine signals with weighted scoring
-        const signals = [arbitrageSignal, momentumSignal, volumeSignal, trendSignal];
-        const weights = [0.4, 0.25, 0.2, 0.15]; // Arbitrage gets highest weight
+        // Combine signals with profile-based weighted scoring
+        const signals = [
+            arbitrageSignal, 
+            momentumSignal, 
+            volumeSignal, 
+            trendSignal,
+            { action: bollingerSignal.action, confidence: bollingerSignal.confidence, reason: bollingerSignal.reason, strategy: 'BollingerBands' },
+            { action: fibonacciSignal.action, confidence: fibonacciSignal.confidence, reason: fibonacciSignal.reason, strategy: 'Fibonacci' },
+            { action: dcaSignal.action, confidence: dcaSignal.confidence, reason: dcaSignal.reason, strategy: 'DCA' }
+        ];
+        
+        // Use profile weights, but only for enabled strategies
+        const weights = [
+            this.currentProfile.enabledStrategies.arbitrage ? this.currentProfile.strategyWeights.arbitrage : 0,
+            this.currentProfile.enabledStrategies.momentum ? this.currentProfile.strategyWeights.momentum : 0,
+            this.currentProfile.enabledStrategies.volume ? this.currentProfile.strategyWeights.volume : 0,
+            this.currentProfile.enabledStrategies.trend ? this.currentProfile.strategyWeights.trend : 0,
+            this.currentProfile.enabledStrategies.bollingerBands ? this.currentProfile.strategyWeights.bollingerBands : 0,
+            this.currentProfile.enabledStrategies.fibonacci ? this.currentProfile.strategyWeights.fibonacci : 0,
+            this.currentProfile.enabledStrategies.dca ? this.currentProfile.strategyWeights.dca : 0
+        ];
 
         const combinedSignal = this.combineSignals(signals, weights);
         
@@ -87,10 +168,38 @@ export class TradingStrategy {
             momentum: momentumSignal.confidence,
             volume: volumeSignal.confidence,
             trend: trendSignal.confidence,
+            bollinger: bollingerSignal.confidence,
+            fibonacci: fibonacciSignal.confidence,
+            dca: dcaSignal.confidence,
             combined: combinedSignal.confidence
         });
 
         return combinedSignal;
+    }
+
+    setProfile(profile: TradingProfile): void {
+        this.currentProfile = profile;
+        this.logger.info(`🔄 Switched to trading profile: ${profile.name}`);
+    }
+
+    getCurrentProfile(): TradingProfile {
+        return this.currentProfile;
+    }
+
+    getProfileWeights(): { [key: string]: number } {
+        return {
+            arbitrage: this.currentProfile.strategyWeights.arbitrage,
+            momentum: this.currentProfile.strategyWeights.momentum,
+            volume: this.currentProfile.strategyWeights.volume,
+            trend: this.currentProfile.strategyWeights.trend,
+            bollingerBands: this.currentProfile.strategyWeights.bollingerBands,
+            fibonacci: this.currentProfile.strategyWeights.fibonacci,
+            dca: this.currentProfile.strategyWeights.dca
+        };
+    }
+
+    getEnabledStrategies(): { [key: string]: boolean } {
+        return { ...this.currentProfile.enabledStrategies };
     }
 
     private async analyzeArbitrage(token: GalaToken, currentPrice: number): Promise<TradingSignal> {

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GalaDex Trading Bot Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1><i class="fas fa-robot"></i> GalaDex Trading Bot</h1>
+                <div class="status-indicator">
+                    <span class="status-dot" id="statusDot"></span>
+                    <span id="statusText">Connecting...</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Dashboard -->
+        <div class="dashboard">
+            <!-- Profile Section -->
+            <div class="card profile-card">
+                <div class="card-header">
+                    <h2><i class="fas fa-user-cog"></i> Trading Profile</h2>
+                    <button class="btn btn-secondary" onclick="showProfileModal()">
+                        <i class="fas fa-edit"></i> Switch Profile
+                    </button>
+                </div>
+                <div class="card-content">
+                    <div class="profile-info">
+                        <h3 id="currentProfileName">Loading...</h3>
+                        <p id="currentProfileDesc">Loading profile information...</p>
+                        <div class="risk-level">
+                            <span class="risk-label">Risk Level:</span>
+                            <span class="risk-badge" id="riskLevel">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Wallet Status -->
+            <div class="card wallet-card">
+                <div class="card-header">
+                    <h2><i class="fas fa-wallet"></i> Wallet Status</h2>
+                </div>
+                <div class="card-content">
+                    <div class="wallet-info">
+                        <div class="balance-item">
+                            <span class="token-name">GALA</span>
+                            <span class="token-balance" id="galaBalance">0.00</span>
+                        </div>
+                        <div class="balance-item">
+                            <span class="token-name">GUSDC</span>
+                            <span class="token-balance" id="gusdcBalance">0.00</span>
+                        </div>
+                        <div class="total-value">
+                            <span>Total Value: $<span id="totalValue">0.00</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trading Performance -->
+            <div class="card performance-card">
+                <div class="card-header">
+                    <h2><i class="fas fa-chart-line"></i> Trading Performance</h2>
+                </div>
+                <div class="card-content">
+                    <div class="metrics-grid">
+                        <div class="metric">
+                            <span class="metric-label">Total Trades</span>
+                            <span class="metric-value" id="totalTrades">0</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Win Rate</span>
+                            <span class="metric-value" id="winRate">0%</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Total Volume</span>
+                            <span class="metric-value" id="totalVolume">$0.00</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Total Profit</span>
+                            <span class="metric-value" id="totalProfit">$0.00</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Max Drawdown</span>
+                            <span class="metric-value" id="maxDrawdown">$0.00</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Sharpe Ratio</span>
+                            <span class="metric-value" id="sharpeRatio">0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Strategies -->
+            <div class="card strategies-card">
+                <div class="card-header">
+                    <h2><i class="fas fa-cogs"></i> Active Strategies</h2>
+                </div>
+                <div class="card-content">
+                    <div class="strategies-grid" id="strategiesGrid">
+                        <!-- Strategies will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="card activity-card">
+                <div class="card-header">
+                    <h2><i class="fas fa-history"></i> Recent Activity</h2>
+                </div>
+                <div class="card-content">
+                    <div class="activity-log" id="activityLog">
+                        <div class="activity-item">
+                            <span class="activity-time">Loading...</span>
+                            <span class="activity-message">Initializing bot...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trading Chart -->
+            <div class="card chart-card">
+                <div class="card-header">
+                    <h2><i class="fas fa-chart-line"></i> Trading Chart</h2>
+                    <div class="chart-controls">
+                        <select id="timeRange" class="chart-select">
+                            <option value="1h">1 Hour</option>
+                            <option value="4h">4 Hours</option>
+                            <option value="1d" selected>1 Day</option>
+                            <option value="1w">1 Week</option>
+                        </select>
+                        <button class="btn btn-secondary" onclick="toggleChartType()">
+                            <i class="fas fa-exchange-alt"></i> Switch View
+                        </button>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <div class="chart-container">
+                        <canvas id="tradingChart"></canvas>
+                    </div>
+                    <div class="chart-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Current Price:</span>
+                            <span class="stat-value" id="currentPrice">$0.00</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">24h Change:</span>
+                            <span class="stat-value" id="priceChange">0.00%</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Volume:</span>
+                            <span class="stat-value" id="chartVolume">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Selection Modal -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Switch Trading Profile</h2>
+                <span class="close" onclick="hideProfileModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="profile-list" id="profileList">
+                    <!-- Profiles will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="app.js"></script>
+</body>
+</html>

@@ -2,6 +2,9 @@ import { Logger } from '../utils/logger';
 import { GalaDexService } from './galaDexService';
 import { TradingStrategy, TradingSignal } from '../strategies/tradingStrategy';
 import { Config } from '../config';
+import { PerformanceTracker, TradeRecord } from './performanceTracker';
+import { VolumeTracker } from './volumeTracker';
+import { ProfileManager } from './profileManager';
 
 export interface TradeExecution {
     id: string;
@@ -24,10 +27,20 @@ export class EnhancedTradingService {
     private tradeHistory: TradeExecution[] = [];
     private isRunning = false;
     private tradingInterval?: NodeJS.Timeout;
+    private performanceTracker: PerformanceTracker;
+    private volumeTracker: VolumeTracker;
+    private profileManager: ProfileManager;
 
     constructor(galaDexService: GalaDexService) {
         this.galaDexService = galaDexService;
-        this.tradingStrategy = new TradingStrategy(galaDexService);
+        this.profileManager = new ProfileManager();
+        
+        // Initialize trading strategy with current profile
+        const currentProfile = this.profileManager.getCurrentProfile();
+        this.tradingStrategy = new TradingStrategy(galaDexService, currentProfile);
+        
+        this.performanceTracker = new PerformanceTracker();
+        this.volumeTracker = new VolumeTracker();
     }
 
     async startTrading(): Promise<void> {
@@ -284,5 +297,82 @@ export class EnhancedTradingService {
 
     isTradingActive(): boolean {
         return this.isRunning;
+    }
+
+    private recordTradeForTracking(trade: TradeExecution): void {
+        // Record for performance tracking
+        const tradeRecord: TradeRecord = {
+            id: trade.id,
+            symbol: trade.token,
+            action: trade.action,
+            amount: trade.amount,
+            price: trade.price,
+            timestamp: trade.timestamp,
+            profit: trade.status === 'FILLED' ? this.calculateTradeProfit(trade) : 0,
+            isProfitable: trade.status === 'FILLED' && this.calculateTradeProfit(trade) > 0
+        };
+
+        this.performanceTracker.recordTrade(tradeRecord);
+        this.volumeTracker.recordTrade(trade.token, trade.amount, trade.price);
+    }
+
+    private calculateTradeProfit(trade: TradeExecution): number {
+        // Simple profit calculation - in real implementation, this would be more complex
+        // For now, we'll use a mock calculation based on confidence and amount
+        if (trade.action === 'BUY') {
+            return trade.amount * trade.price * 0.02; // Assume 2% profit for buys
+        } else {
+            return trade.amount * trade.price * 0.01; // Assume 1% profit for sells
+        }
+    }
+
+    getTradingStatus(): any {
+        const performance = this.performanceTracker.getTradingMetrics();
+        const volume = this.volumeTracker.getContestVolumeStatus();
+        
+        return {
+            performance,
+            volume,
+            performanceMetrics: this.performanceTracker.getMetrics(),
+            volumeMetrics: this.volumeTracker.getMetrics()
+        };
+    }
+
+    getPerformanceSummary(): string {
+        return this.performanceTracker.getPerformanceSummary();
+    }
+
+    getVolumeSummary(): string {
+        return this.volumeTracker.getVolumeSummary();
+    }
+
+    // Profile management methods
+    switchProfile(profileId: string): boolean {
+        const profile = this.profileManager.getProfile(profileId);
+        if (!profile) {
+            this.logger.error(`Profile ${profileId} not found`);
+            return false;
+        }
+
+        this.tradingStrategy.setProfile(profile);
+        this.profileManager.setCurrentProfile(profileId);
+        this.logger.info(`🔄 Switched to profile: ${profile.name}`);
+        return true;
+    }
+
+    getCurrentProfile() {
+        return this.tradingStrategy.getCurrentProfile();
+    }
+
+    getAllProfiles() {
+        return this.profileManager.getAllProfiles();
+    }
+
+    getProfileManager() {
+        return this.profileManager;
+    }
+
+    getProfileSummary(): string {
+        return this.profileManager.getProfileSummary();
     }
 }

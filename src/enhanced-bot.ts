@@ -3,6 +3,7 @@ import path from 'path';
 import { Bot } from './bot';
 import { Logger } from './utils/logger';
 import { Config } from './config';
+import { TradingDashboard } from './tradingDashboard';
 
 // Load environment variables
 dotenv.config({ path: path.join(process.cwd(), '.env') });
@@ -20,6 +21,21 @@ async function main(): Promise<void> {
 
         const bot = new Bot();
         await bot.initialize();
+
+        // Display current trading profile
+        const currentProfile = bot.getEnhancedTradingService().getCurrentProfile();
+        logger.info(`🎯 Active Trading Profile: ${currentProfile.name}`);
+        logger.info(`📝 Description: ${currentProfile.description}`);
+        logger.info(`⚖️ Strategy Weights: Arbitrage(${(currentProfile.strategyWeights.arbitrage * 100).toFixed(1)}%), Momentum(${(currentProfile.strategyWeights.momentum * 100).toFixed(1)}%), Bollinger(${(currentProfile.strategyWeights.bollingerBands * 100).toFixed(1)}%), Fibonacci(${(currentProfile.strategyWeights.fibonacci * 100).toFixed(1)}%), DCA(${(currentProfile.strategyWeights.dca * 100).toFixed(1)}%)`);
+
+        // Initialize trading dashboard
+        const tradingDashboard = new TradingDashboard(
+            bot.getEnhancedTradingService(),
+            bot.getGalaDexService()
+        );
+
+        // Start trading monitoring
+        await tradingDashboard.startMonitoring();
 
         // Start enhanced trading
         await bot.startEnhancedTrading();
