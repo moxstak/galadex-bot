@@ -1,6 +1,6 @@
 # 🚀 GalaDex TypeScript Trading Bot
 
-<img width="543" height="212" alt="image" src="https://github.com/user-attachments/assets/9e31c33d-fb3a-42bb-886e-93231bd54eb8" />
+<img width="1422" height="621" alt="image" src="https://github.com/user-attachments/assets/b9cb2d13-b3b9-4cdf-add1-ce9db57c3a94" />
 
 A sophisticated automated trading bot for the GalaDex decentralized exchange, built with TypeScript and featuring multiple advanced trading strategies including arbitrage detection, momentum analysis, Bollinger Bands, Fibonacci analysis, and risk management.
 
